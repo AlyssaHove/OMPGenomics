@@ -21,7 +21,6 @@ from the DNA analysis will contain leading codes that have to be ignored.
 #include <iomanip>
 #include <string>
 #include <omp.h>
-#include <Windows.h>
 #include <cstdlib>
 using namespace std;
 int main() {
@@ -32,15 +31,15 @@ int main() {
 		cerr << "File cannot be opened" << endl;
 	}
 	cout << "File opened, putting all characters in to an array" << endl;
-	bool complete = false; // if search is complete
+	bool active = false; // if search is complete
+	char ch;
 	char seq[1000000];
 	char header[255];
-	int locations[1000]; // array of location
 	int n = 0;  //elements in the array
 	int lines = 1; //number of lines for the sequence
-	int start = 1;
-	int stringLength = 0;
-	char ch;
+	int start = 0;
+	int length = 0;
+	int seqAmount = 0;
 
 	inFastaFile.getline(header, 255);
 
@@ -53,26 +52,29 @@ int main() {
 	cout << "Array created" << endl;
 	
 	// Kinda like this from ID
-	//Note: how about a 3 dimentional array
-	int k = 0;
-#pragma omp parallel for private(seq, i, start)
+	//find and post as you go
+#pragma omp parallel for private(seq, i, start,active)
 		for (int i = 0; i < n; i++)
 		{
-			if (seq [i] == 'A' && seq[i + 1] == 'T' && seq[i + 2] == 'G') // if sequence matches the start codon
+			if (seq [i] == 'A' && seq[i + 1] == 'T' && seq[i + 2] == 'G' && active == false) // if sequence matches the start codon
 			{
-				start++; // grab locations of 
-				locations[k] = i;
-				k++;
+				start = i; // grab start
+				active = true;
+				seqAmount++;
+			
+			}
+			if (seq[i] == 'T' && seq[i + 1] == 'A' && seq[i + 2] == 'A' && active) {
+
+				active = false; 
+				cout << "Sequence start at character: " << start << "   " << "Sequence length: " << (i+2) - start << endl;
 			}
 		}
-#pragma omp 
-		for(int j = 0; j < start; )
 
 	cout << "Input complete for sequence: " << header << endl;
 	cout << "The size of the array is " << n << " and there were " << lines
 		<< " lines" << endl;
+	cout << "Amount of sequences: " << seqAmount << endl;
 	seq[n] = '\0';
-	cout << "The sequence is" << endl;
-	cout << start << endl;
-	system("pause");
+
+	//system("pause");
 }
