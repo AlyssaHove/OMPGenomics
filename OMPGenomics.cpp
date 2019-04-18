@@ -17,11 +17,12 @@ from the DNA analysis will contain leading codes that have to be ignored.
    // eliminate the newlines, etc., until end of file or new header > is found
    // LKR 4/2017
 #include <iostream>
-#include <fstream>
-#include <iomanip>
 #include <string>
+#include <stdio.h>
 #include <omp.h>
+#include <fstream>
 #include <cstdlib>
+#include <windows.h>
 using namespace std;
 int main() {
 
@@ -32,16 +33,21 @@ int main() {
 	}
 	cout << "File opened, putting all characters in to an array" << endl;
 	bool active = false; // if search is complete
-	char ch;
-	char seq[1000000];
-	char header[255];
+	char ch; // character used in given code
+	char seq[1000000]; // sequence 
+	char header[255]; // header of file
 	int n = 0;  //elements in the array
 	int lines = 1; //number of lines for the sequence
-	int start = 0;
 	int length = 0;
-	int seqAmount = 0;
+	int seqAmount = 0; // amount of sequences
+	int timeStart = 0; //
+	int startLoc[2500]; // start locations
+	int seqLength[2500]; // sequence length
+
+	timeStart = GetTickCount(); // get start time
 
 	inFastaFile.getline(header, 255);
+	cout << "Search Start" << endl;
 
 	//now process input codes until > or end of file
 	while ((ch = inFastaFile.get()) != EOF) {
@@ -49,32 +55,33 @@ int main() {
 		if (ch == '>')break;
 		if (ch == '\n') lines++;
 	}
-	cout << "Array created" << endl;
 	
-	// Kinda like this from ID
-	//find and post as you go
-#pragma omp parallel for private(seq, i, start,active)
+	int current = 0;
+//#pragma omp parallel for private(i) firstprivate(seq,active)
 		for (int i = 0; i < n; i++)
 		{
-			if (seq [i] == 'A' && seq[i + 1] == 'T' && seq[i + 2] == 'G' && active == false) // if sequence matches the start codon
+//#pragma omp critical
+			if (seq[i] == 'A' && seq[i + 1] == 'T' && seq[i + 2] == 'G' && active == false) // if sequence matches the start codon
 			{
-				start = i; // grab start
-				active = true;
-				seqAmount++;
+				startLoc[current] = i; // grab start
+				active = true; // is it an active sequence
 			
 			}
 			if (seq[i] == 'T' && seq[i + 1] == 'A' && seq[i + 2] == 'A' && active) {
 
-				active = false; 
-				cout << "Sequence start at character: " << start << "   " << "Sequence length: " << (i+2) - start << endl;
+				active = false; // sequence is now not active
+				seqLength[current] = (i + 2) - startLoc[current];
+				current++; // move the array space
+				seqAmount++; // count the number of sequences
 			}
 		}
 
-	cout << "Input complete for sequence: " << header << endl;
+	cout << "Ticks taken to complete: " << GetTickCount() - timeStart << endl;
 	cout << "The size of the array is " << n << " and there were " << lines
 		<< " lines" << endl;
 	cout << "Amount of sequences: " << seqAmount << endl;
-	seq[n] = '\0';
+	for (int j = 0; j < seqAmount; j++) {
+	cout << "The start of the sequence is " << startLoc[j] << ". The length of the sequence is: " << seqLength[j] << endl;
+	}
 
-	//system("pause");
 }
